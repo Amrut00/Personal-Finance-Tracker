@@ -1,1 +1,1 @@
-# -FJ-BE-R2-Amrut-Pathane-IIIT-Pune
+# FJ-BE-R2-Amrut-Pathane-IIIT-Pune
