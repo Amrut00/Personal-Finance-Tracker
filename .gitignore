@@ -1,0 +1,38 @@
+# Node.js
+node_modules/
+
+# Build directories
+frontend/dist/
+backend/node_modules/
+
+# .env files
+frontend/.env
+backend/.env
+
+# Log files
+*.log
+*.log.*
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE/editor-specific files
+.idea/
+.vscode/
+
+# Frontend build output
+frontend/build/
+
+# Backend build output (if applicable)
+backend/build/
+
+# npm debug log
+npm-debug.log*
+
+# Coverage directory (if using code coverage tools like Jest)
+coverage/
+
+# Other
+*.bak
+*.swp
