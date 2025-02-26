@@ -119,20 +119,17 @@ export const addTransaction = async (req, res) => {
 
     await pool.query("BEGIN");
 
-    // ➖ Deduct from account balance
     await pool.query(
       `UPDATE tblaccount SET account_balance = account_balance - $1 WHERE id = $2`,
       [amount, account_id]
     );
 
-    // ➕ Add transaction
     const newTransaction = await pool.query(
       `INSERT INTO tbltransaction(user_id, account_id, description, type, status, amount, source, category)
        VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
       [userId, account_id, description, "expense", "Completed", amount, source, category]
     );
 
-    // ➕ Update Budget Spent Amount
     await pool.query(
       `UPDATE tblbudget SET amount_spent = amount_spent + $1 
        WHERE user_id = $2 AND category = $3`,
@@ -170,31 +167,26 @@ export const editTransaction = async (req, res) => {
 
     await pool.query("BEGIN");
 
-    // ➖ Revert old amount from the original account (old transaction)
     await pool.query({
       text: `UPDATE tblaccount SET account_balance = account_balance ${oldTransaction.type === 'income' ? '-' : '+'} $1 WHERE id = $2`,
       values: [oldAmount, oldTransaction.account_id]
     });
 
-    // ➕ Apply new amount to the new account (new transaction)
     await pool.query({
       text: `UPDATE tblaccount SET account_balance = account_balance ${type === 'income' ? '+' : '-'} $1 WHERE id = $2`,
       values: [newAmount, account_id]
     });
 
-    // ➖ Revert old amount from budget (old category)
     await pool.query(
       `UPDATE tblbudget SET amount_spent = amount_spent - $1 WHERE user_id = $2 AND category = $3`,
       [oldAmount, oldTransaction.user_id, oldTransaction.category]
     );
 
-    // ➕ Apply new amount to budget (new category)
     await pool.query(
       `UPDATE tblbudget SET amount_spent = amount_spent + $1 WHERE user_id = $2 AND category = $3`,
       [newAmount, oldTransaction.user_id, category]
     );
 
-    // ➕ Update the transaction details
     await pool.query(
       `UPDATE tbltransaction 
        SET account_id = $1, description = $2, source = $3, amount = $4, category = $5, type = $6, status = $7, updatedat = CURRENT_TIMESTAMP 
@@ -227,18 +219,15 @@ export const deleteTransaction = async (req, res) => {
       return res.status(404).json({ message: 'Transaction not found' });
     }
 
-    // ➖ Revert amount from the account balance
     if (transaction.account_id) {
       let balanceUpdateQuery;
       if (transaction.type === 'expense') {
-        // Return money to the account
         balanceUpdateQuery = `
           UPDATE tblaccount 
           SET account_balance = account_balance + $1 
           WHERE id = $2
         `;
       } else {
-        // Deduct money from the account
         balanceUpdateQuery = `
           UPDATE tblaccount 
           SET account_balance = account_balance - $1 
@@ -252,13 +241,11 @@ export const deleteTransaction = async (req, res) => {
       ]);
     }
 
-    // ➖ Revert amount from budget
     await pool.query(
       `UPDATE tblbudget SET amount_spent = amount_spent - $1 WHERE user_id = $2 AND category = $3`,
       [transaction.amount, transaction.user_id, transaction.category]
     );
 
-    // ➖ Delete the transaction
     await pool.query(`DELETE FROM tbltransaction WHERE id = $1`, [transactionId]);
 
     await pool.query("COMMIT");
@@ -290,7 +277,6 @@ export const transferMoneyToAccount = async (req, res) => {
       return res.status(403).json({ status: "failed", message: "Amount should be greater than 0." });
     }
 
-    // ✅ Check 'from' account
     const fromAccountResult = await pool.query(`SELECT * FROM tblaccount WHERE id = $1`, [from_account]);
     const fromAccount = fromAccountResult.rows[0];
 
@@ -298,7 +284,6 @@ export const transferMoneyToAccount = async (req, res) => {
       return res.status(404).json({ status: "failed", message: "Sender account not found." });
     }
 
-    // ✅ Check 'to' account
     const toAccountResult = await pool.query(`SELECT * FROM tblaccount WHERE id = $1`, [to_account]);
     const toAccount = toAccountResult.rows[0];
 
@@ -310,22 +295,18 @@ export const transferMoneyToAccount = async (req, res) => {
       return res.status(403).json({ status: "failed", message: "Insufficient balance." });
     }
 
-    // ✅ Begin Transaction
     await pool.query("BEGIN");
 
-    // ➖ Deduct from 'from_account'
     await pool.query({
       text: `UPDATE tblaccount SET account_balance = account_balance - $1 WHERE id = $2`,
       values: [newAmount, from_account],
     });
 
-    // ➕ Add to 'to_account'
     await pool.query({
       text: `UPDATE tblaccount SET account_balance = account_balance + $1 WHERE id = $2`,
       values: [newAmount, to_account],
     });
 
-    // 📝 Log 'expense' in transactions for 'from_account'
     await pool.query({
       text: `INSERT INTO tbltransaction (user_id, account_id, description, type, status, amount, source) 
              VALUES ($1, $2, $3, $4, $5, $6, $7)`,
@@ -340,7 +321,6 @@ export const transferMoneyToAccount = async (req, res) => {
       ],
     });
 
-    // 📝 Log 'income' in transactions for 'to_account'
     await pool.query({
       text: `INSERT INTO tbltransaction (user_id, account_id, description, type, status, amount, source) 
              VALUES ($1, $2, $3, $4, $5, $6, $7)`,

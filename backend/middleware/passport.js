@@ -14,7 +14,6 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        // Check if user exists
         const existingUser = await pool.query(
           `SELECT * FROM tbluser WHERE google_id = $1`,
           [profile.id]
@@ -24,7 +23,6 @@ passport.use(
           return done(null, existingUser.rows[0]);
         }
 
-        // If not, create new user
         const newUser = await pool.query(
           `INSERT INTO tbluser (google_id, firstname, lastname, email) VALUES ($1, $2, $3, $4) RETURNING *`,
           [
@@ -43,12 +41,10 @@ passport.use(
   )
 );
 
-// Serialize user into session
 passport.serializeUser((user, done) => {
   done(null, user.id);
 });
 
-// Deserialize user from session
 passport.deserializeUser(async (id, done) => {
   try {
     const user = await pool.query(`SELECT * FROM tbluser WHERE id = $1`, [id]);

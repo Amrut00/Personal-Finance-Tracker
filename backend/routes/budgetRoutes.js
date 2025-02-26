@@ -4,9 +4,9 @@ import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/", authMiddleware, createBudget);        // ➤ Create Budget
-router.get("/", authMiddleware, getBudgets);          // ➤ Get All Budgets
-router.put("/:budget_id", authMiddleware, updateBudget); // ➤ Update Budget
-router.delete("/:budget_id", authMiddleware, deleteBudget); // ➤ Delete Budget
+router.post("/", authMiddleware, createBudget);       
+router.get("/", authMiddleware, getBudgets);        
+router.put("/:budget_id", authMiddleware, updateBudget); 
+router.delete("/:budget_id", authMiddleware, deleteBudget); 
 
 export default router;

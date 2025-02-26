@@ -1,5 +1,6 @@
 import { DialogPanel, DialogTitle } from '@headlessui/react';
 import React, { useState, useEffect } from 'react';
+import { PiSealCheckFill } from 'react-icons/pi';
 import { formatCurrency } from '../libs';
 import DialogWrapper from './wrappers/dialog-wrapper';
 import api from '../libs/apiCall';
@@ -7,22 +8,20 @@ import { toast } from 'sonner';
 import { Button } from './ui/button';
 
 const ViewTransaction = ({ data, isOpen, setIsOpen, refreshData }) => {
-  const [selectedAccountId, setSelectedAccountId] = useState(data?.account_id || "");
   const [isEditMode, setIsEditMode] = useState(false);
+  const [formData, setFormData] = useState({});
   const [accountData, setAccountData] = useState([]);
-  const [source, setSource] = useState(data?.source || "");
+  const [selectedAccountId, setSelectedAccountId] = useState(data?.account_id || "");
   const [description, setDescription] = useState(data?.description || "");
   const [status, setStatus] = useState(data?.status || "");
   const [amount, setAmount] = useState(data?.amount || "");
   const [type, setType] = useState(data?.type || "");
-
   const [category, setCategory] = useState(data?.category || "Uncategorized");
-  
 
   const categories = ["Uncategorized", "Groceries", "Rent", "Utilities", "Entertainment", "Healthcare", "Travel", "Education", "Others"];
 
   useEffect(() => {
-    setSource(data?.source || "");
+    setFormData(data || {});
     setSelectedAccountId(data?.account_id || "");
     setDescription(data?.description || "");
     setStatus(data?.status || "");
@@ -41,8 +40,19 @@ const ViewTransaction = ({ data, isOpen, setIsOpen, refreshData }) => {
     }
   };
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "description") setDescription(value);
+    if (name === "status") setStatus(value);
+    if (name === "amount") setAmount(value);
+  };
+
   const handleAccountChange = (e) => {
     setSelectedAccountId(e.target.value);
+  };
+
+  const handleCategoryChange = (e) => {
+    setCategory(e.target.value);
   };
 
   const handleSave = async () => {
@@ -56,6 +66,7 @@ const ViewTransaction = ({ data, isOpen, setIsOpen, refreshData }) => {
         amount: amount,
         type: type,
         status: status,
+        category: category, // Added category to payload
       };
 
       const { data: res } = await api.put(`/transaction/edit-transaction/${data?.id}`, payload);
@@ -75,10 +86,11 @@ const ViewTransaction = ({ data, isOpen, setIsOpen, refreshData }) => {
   const handleDelete = async () => {
     try {
       const { data: res } = await api.delete(`/transaction/${data?.id}`);
+      
       if (res?.status === "success") {
         toast.success("Transaction deleted successfully");
-        refreshData();
-        setIsOpen(false);
+        refreshData(); // Refresh transactions list
+        setIsOpen(false); // Close modal
       }
     } catch (error) {
       console.error("Error deleting transaction", error);
@@ -101,7 +113,6 @@ const ViewTransaction = ({ data, isOpen, setIsOpen, refreshData }) => {
         <div className='space-y-3'>
           {isEditMode ? (
             <>
-
               <label className='text-gray-600'>Account</label>
               <select
                 name='account_id'
@@ -115,12 +126,12 @@ const ViewTransaction = ({ data, isOpen, setIsOpen, refreshData }) => {
                   </option>
                 ))}
               </select>
-              
+
               <label className='text-gray-600'>Description</label>
               <input
                 name='description'
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={handleInputChange}
                 className='w-full border border-gray-300 p-2 rounded'
               />
 
@@ -129,7 +140,7 @@ const ViewTransaction = ({ data, isOpen, setIsOpen, refreshData }) => {
                 type='number'
                 name='amount'
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={handleInputChange}
                 className='w-full border border-gray-300 p-2 rounded'
               />
 
@@ -137,7 +148,7 @@ const ViewTransaction = ({ data, isOpen, setIsOpen, refreshData }) => {
               <select
                 name='status'
                 value={status}
-                onChange={(e) => setStatus(e.target.value)}
+                onChange={handleInputChange}
                 className='w-full border border-gray-300 p-2 rounded'
               >
                 <option value='Pending'>Pending</option>
@@ -145,47 +156,68 @@ const ViewTransaction = ({ data, isOpen, setIsOpen, refreshData }) => {
                 <option value='Rejected'>Rejected</option>
               </select>
 
+              {/* Category Dropdown */}
               <label className='text-gray-600'>Category</label>
               <select
                 name='category'
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={handleCategoryChange}
                 className='w-full border border-gray-300 p-2 rounded'
               >
-                {categories.map((cat, idx) => (
-                  <option key={idx} value={cat}>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
                     {cat}
                   </option>
                 ))}
               </select>
 
               <div className='flex justify-end gap-4 mt-4'>
-                <Button onClick={handleSave} className='bg-blue-600 text-white'>
-                  Save Changes
-                </Button>
-                <Button onClick={closeModal} variant='outline'>
+                <Button onClick={() => setIsEditMode(false)} variant='outline'>
                   Cancel
+                </Button>
+                <Button onClick={handleSave} className='bg-violet-700 text-white'>
+                  Save Changes
                 </Button>
               </div>
             </>
           ) : (
             <>
-              
-              <p className='text-lg text-gray-700'><strong>Description:</strong> {data?.description}</p>
-              <p className='text-lg text-gray-700'><strong>Amount:</strong> {formatCurrency(data?.amount)}</p>
-              <p className='text-lg text-gray-700'><strong>Status:</strong> {data?.status}</p>
-              <p className='text-lg text-gray-700'><strong>Category:</strong> {data?.category || "Uncategorized"}</p>
+              <div className='flex items-center gap-2 text-gray-600 dark:text-gray-500'>
+                <p>
+                  {
+                    accountData.find(acc => acc.id === data?.account_id)?.account_name ||
+                    data?.source
+                  }
+                </p>
+                <PiSealCheckFill size={30} className='text-emerald-500 ml-4' />
+              </div>
 
-              <div className='flex justify-end gap-4 mt-4'>
-                <Button onClick={() => setIsEditMode(true)} className='bg-green-600 text-white'>
-                  Edit
-                </Button>
-                <Button onClick={handleDelete} className='bg-red-600 text-white'>
-                  Delete
-                </Button>
-                <Button onClick={closeModal} className='bg-violet-800 text-white'>
-                  Close
-                </Button>
+              <div className='mb-10'>
+                <p className='text-xl text-black dark:text-white'>{data?.description}</p>
+                <span className='text-xs text-gray-600'>
+                  {new Date(data?.createdat).toLocaleDateString("en-IN", { dateStyle: "full" })}{" "}
+                  {new Date(data?.createdat).toLocaleTimeString("en-IN")}
+                </span>
+              </div>
+
+              <div className='mt-10 mb-3 flex justify-between'>
+                <p className='text-black dark:text-gray-400 text-2xl font-bold'>
+                  <span className={`${data?.type === "income" ? "text-emerald-600" : "text-red-600"} font-bold`}>
+                    {data?.type === "income" ? "+" : "-"}
+                  </span>{" "}
+                  {formatCurrency(data?.amount)}
+                </p>
+                <div className='flex gap-2'>
+                  <Button onClick={() => setIsEditMode(true)} className='bg-blue-600 text-white'>
+                    Edit
+                  </Button>
+                  <Button onClick={handleDelete} className="bg-red-600 text-white hover:bg-red-700">
+                    Delete
+                  </Button>
+                  <Button onClick={closeModal} className='bg-violet-800 text-white'>
+                    Close
+                  </Button>
+                </div>
               </div>
             </>
           )}

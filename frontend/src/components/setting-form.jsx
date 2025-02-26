@@ -72,13 +72,13 @@ const SettingsForm = () => {
   }, []);
 
   const Countries = () => {
-    const [isOpen, setIsOpen] = useState(false); // Track dropdown open state
+    const [isOpen, setIsOpen] = useState(false); 
   
     return (
       <div className='w-full'>
         <Combobox value={selectedCountry} onChange={(value) => {
           setSelectedCountry(value);
-          setIsOpen(false); // Close dropdown on selection
+          setIsOpen(false); 
         }}>
           <div className='relative mt-1'>
             <div>
@@ -86,16 +86,16 @@ const SettingsForm = () => {
                     className='inputStyles'
                     displayValue={(country) => country?.country || ""}
                     onChange={(e) => {
-                        console.log("Typing:", e.target.value); // 👈 Log user input
+                        console.log("Typing:", e.target.value);
                         setQuery(e.target.value);
-                        setIsOpen(true); // Keep dropdown open while typing
+                        setIsOpen(true); 
                     }}
                     onFocus={() => setIsOpen(true)}
                     placeholder="Search for a country..."
                 />
               <ComboboxButton
                 className='absolute inset-y-0 right-0 flex items-center pr-2'
-                onClick={() => setIsOpen((prev) => !prev)} // Toggle dropdown on button click
+                onClick={() => setIsOpen((prev) => !prev)} 
               >
                 <BsChevronExpand className='text-gray-400' />
               </ComboboxButton>
@@ -103,7 +103,7 @@ const SettingsForm = () => {
   
             <Transition
               as={Fragment}
-              show={isOpen} // Control visibility explicitly
+              show={isOpen}
               leave='transition ease-in duration-100'
               leaveFrom='opacity-100'
               leaveTo='opacity-0'
@@ -166,7 +166,6 @@ const SettingsForm = () => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className='space-y-5 w-full'>
-      {/* Name */}
       <div className='flex flex-col md:flex-row items-center justify-between gap-4'>
         <Input
           disabled={loading}
@@ -190,7 +189,6 @@ const SettingsForm = () => {
         />
       </div>
 
-      {/* Email & Contact */}
       <div className='flex flex-col md:flex-row items-center justify-between gap-4'>
         <Input
           disabled={loading}
@@ -214,7 +212,6 @@ const SettingsForm = () => {
         />
       </div>
 
-      {/* Country & Currency */}
       <div className='flex flex-col md:flex-row items-center justify-between gap-4'>
         <div className='w-full'>
           <span className='labelStyles'>Country</span>
@@ -228,7 +225,6 @@ const SettingsForm = () => {
         </div>
       </div>
 
-      {/* Appearance */}
       <div className='w-full flex items-center justify-between pt-10'>
         <div>
           <p className='text-lg text-black dark:text-gray-400 font-semibold'>
@@ -250,7 +246,6 @@ const SettingsForm = () => {
         </div>
       </div>
 
-      {/* Submit Buttons */}
       <div className='flex items-center gap-6 justify-end pb-10'>
         <Button
           variant='outline'

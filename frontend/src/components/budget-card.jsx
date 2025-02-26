@@ -22,7 +22,7 @@ const BudgetCard = ({ data, refetch }) => {
 
   return (
     <div className='p-4 bg-white shadow-md rounded-lg dark:bg-slate-900'>
-      <h2 className='text-xl font-semibold'>{category}</h2>
+      <h2 className='text-xl font-semibold dark:text-white'>{category}</h2>
       <p className='text-sm text-gray-500'>From: {start_date} To: {end_date}</p>
 
       <ProgressBar value={percentage} />
