@@ -10,10 +10,13 @@ const app = express();
 
 // ✅ Fix CORS Policy
 app.use(cors({
-    origin: ['http://localhost:5173', "https://startling-capybara-a97502.netlify.app"],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+  origin: [
+      'http://localhost:5173', 
+      'https://startling-capybara-a97502.netlify.app', 
+      'https://finance-tracker-frontend-1111.vercel.app'
+  ],
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 app.use(express.json());
