@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import session from "express-session";
 import passport from "./middleware/passport.js";
 import router from "./routes/index.js";
 
@@ -9,29 +8,25 @@ dotenv.config();
 
 const app = express();
 
+// ✅ Fix CORS Policy
 app.use(cors({
-    origin: ['http://localhost:5173'], 
+    origin: ['http://localhost:5173', "https://startling-capybara-a97502.netlify.app"],
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  }));
-  
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+}));
+
 app.use(express.json());
 
-app.use(
-  session({
-    secret: process.env.JWT_SECRET,
-    resave: false,
-    saveUninitialized: false,
-  })
-);
-
+// ✅ Initialize Passport (For Google OAuth)
 app.use(passport.initialize());
-app.use(passport.session());
 
+// ✅ API Routes
 app.use("/api-v1", router);
 
+// ✅ 404 Fallback
 app.use((req, res) => {
-  res.status(404).json({ message: "Route not found" });
+    res.status(404).json({ message: "Route not found" });
 });
 
 const PORT = process.env.PORT || 5000;
