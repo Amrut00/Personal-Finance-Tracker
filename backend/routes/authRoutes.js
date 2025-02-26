@@ -11,19 +11,23 @@ router.get("/google", passport.authenticate("google", { scope: ["profile", "emai
 
 router.get(
   "/google/callback",
-  passport.authenticate("google", { failureRedirect: "http://localhost:5173/sign-in" }),
+  passport.authenticate("google", { failureRedirect: process.env.FRONTEND_URL + "/sign-in" }),
   (req, res) => {
-    res.redirect("http://localhost:5173/dashboard");
+    res.redirect(process.env.FRONTEND_URL + "/dashboard");
   }
 );
 
 router.post("/google", googleSignIn);
 
-router.get("/logout", (req, res) => {
+router.get("/logout", (req, res, next) => {
   req.logout((err) => {
-    if (err) return res.status(500).send("Logout failed");
-    res.redirect("http://localhost:5173/sign-in");
+    if (err) return next(err);
+
+    req.session = null;
+
+    res.redirect(process.env.FRONTEND_URL + "/sign-in");
   });
 });
+
 
 export default router;

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL =  "https://fj-be-r2-amrut-pathane-iiit-pune-1.onrender.com/api-v1";
+const API_URL = "https://fj-be-r2-amrut-pathane-iiit-pune-1.onrender.com/api-v1";
 
 const api = axios.create({
   baseURL: API_URL,
@@ -15,7 +15,7 @@ export const setAuthToken = (token) => {
   }
 };
 
-// ✅ Check localStorage on first load
+// ✅ Load token from localStorage on app start
 const storedToken = localStorage.getItem("token");
 if (storedToken) {
   setAuthToken(storedToken);
