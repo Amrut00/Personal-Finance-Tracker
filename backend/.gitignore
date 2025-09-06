@@ -75,4 +75,7 @@ temp/
 
 # Uploads directory
 uploads/
-*.json
+
+# Ignore specific JSON files (but not package.json)
+firebaseServideAccount.json
+*service-account*.json
