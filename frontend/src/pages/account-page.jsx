@@ -20,7 +20,7 @@ const ICONS = {
             <FaBtc size={26} />
         </div>
     ),
-    "Visa debit card": (
+    "visa debit card": (
         <div className="w-12 h-12 bg-blue-600 text-white flex items-center justify-center rounded-full" >
             <RiVisaLine size={26} />
         </div>
@@ -33,6 +33,21 @@ const ICONS = {
     paypal: (
         <div className="w-12 h-12 bg-blue-700 text-white flex items-center justify-center rounded-full" >
             <FaPaypal size={26} />
+        </div>
+    ),
+    bank: (
+        <div className="w-12 h-12 bg-green-600 text-white flex items-center justify-center rounded-full" >
+            <span className="text-lg font-bold">B</span>
+        </div>
+    ),
+    credit: (
+        <div className="w-12 h-12 bg-purple-600 text-white flex items-center justify-center rounded-full" >
+            <span className="text-lg font-bold">C</span>
+        </div>
+    ),
+    investment: (
+        <div className="w-12 h-12 bg-orange-600 text-white flex items-center justify-center rounded-full" >
+            <span className="text-lg font-bold">I</span>
         </div>
     ),
 };
@@ -64,12 +79,12 @@ const AccountPage = () => {
   };
 
   const handleOpenAddMoney = (el) => {
-    setSelectedAccount(el?.id);
+    setSelectedAccount(el?._id);
     setIsOpenTopup(true);
   };
 
   const handleTransferMoney = (el) => {
-    setSelectedAccount(el?.id);
+    setSelectedAccount(el?._id);
     setIsOpenTransfer(true);
   }
 
@@ -114,14 +129,14 @@ const AccountPage = () => {
                       className='w-full h-48 flex gap-4 bg-gray-50 dark:bg-slate-800 p-3 rounded shadow'
                     >
                       <div>
-                        {ICONS[acc?.account_name?.toLowerCase()]}
+                        {ICONS[acc?.accountType?.toLowerCase()] || ICONS[acc?.accountName?.toLowerCase()]}
                       </div>
                   
                       <div className='space-y-2 w-full'>
                         <div className='flex items-center justify-between'>
                           <div className='flex items-center'>
                             <p className='text-black dark:text-white text-2xl font-bold'>
-                              {acc?.account_name}
+                              {acc?.accountName}
                             </p>
                             <MdVerifiedUser size={26} className='text-emerald-600 ml-1' />
                           </div>
@@ -133,16 +148,16 @@ const AccountPage = () => {
                         </div>
                   
                         <span className='text-gray-600 dark:text-gray-400 font-light leading-loose'>
-                          {maskAccountNumber(acc?.account_number)}
+                          {maskAccountNumber(acc?.accountNumber)}
                         </span>
                   
                         <p className='text-xs text-gray-600 dark:text-gray-500'>
-                          {new Date(acc?.createdat).toLocaleDateString("en-IN", { dateStyle: "full" })}
+                          {new Date(acc?.createdAt).toLocaleDateString("en-IN", { dateStyle: "full" })}
                         </p>
                   
                         <div className='flex items-center justify-between'>
                           <p className='text-x1 text-gray-600 dark:text-gray-400 font-medium'>
-                            {formatCurrency(acc?.account_balance)}
+                            {formatCurrency(acc?.balance)}
                           </p>
                           <button
                             onClick={() => handleOpenAddMoney(acc)}

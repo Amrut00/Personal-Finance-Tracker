@@ -29,12 +29,12 @@ const AddTransaction = ({ isOpen, setIsOpen, refetch }) => {
       setLoading(true);
       const newData = {
         ...data,
-        source: accountInfo.account_name,
-        account_id: accountInfo.id,
+        source: accountInfo.accountName,
+        account_id: accountInfo._id,
         category,
       };
 
-      const { data: res } = await api.post(`/transaction/add-transaction/${accountInfo.id}`, newData);
+      const { data: res } = await api.post(`/transaction/add-transaction/${accountInfo._id}`, newData);
       if (res?.status === "success") {
         toast.success(res?.message);
         setIsOpen(false);
@@ -49,8 +49,8 @@ const AddTransaction = ({ isOpen, setIsOpen, refetch }) => {
   };
 
   const getAccountBalance = (val) => {
-    const filteredAccount = accountData?.find((account) => account.account_name === val);
-    setAccountBalance(filteredAccount ? filteredAccount.account_balance : 0);
+    const filteredAccount = accountData?.find((account) => account.accountName === val);
+    setAccountBalance(filteredAccount ? filteredAccount.balance : 0);
     setAccountInfo(filteredAccount);
   };
 
@@ -89,8 +89,8 @@ const AddTransaction = ({ isOpen, setIsOpen, refetch }) => {
               <select onChange={(e) => getAccountBalance(e.target.value)} className='inputStyles'>
                 <option disabled selected>Select Account</option>
                 {accountData?.map((acc, index) => (
-                  <option key={index} value={acc?.account_name}>
-                    {acc?.account_name} - {formatCurrency(acc?.account_balance, user?.country?.currency)}
+                  <option key={index} value={acc?.accountName}>
+                    {acc?.accountName} - {formatCurrency(acc?.balance, user?.currency)}
                   </option>
                 ))}
               </select>

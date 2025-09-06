@@ -102,14 +102,14 @@ const ChangePassword = () => {
         <div className='flex items-center gap-6 mt-10 justify-end pb-10 border-gray-200 dark:border-gray-800'>
             <Button
                 variant='outline'
-                loading={loading}
+                disabled={loading}
                 type="reset"
                 className="px-6 bg-transparent text-black  border border-gray-200 dark:text-white dark:bg-gray-900 dark:border-gray-700"
             >
                 Reset
             </Button>
             <Button
-                loading={loading}
+                disabled={loading}
                 type="submit"
                 className="px-8 bg-violet-800 text-white"
             >

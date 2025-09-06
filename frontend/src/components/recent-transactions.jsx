@@ -39,7 +39,7 @@ const RecentTransactions = ({ data }) => {
                 className='text-sm text-gray-600 border-b border-gray-200 dark:border-gray-700 dark:text-gray-500 hover:bg-gray-300/10'
               >
                 <td className='py-2 px-2'>
-                  {new Date(item.createdat).toLocaleDateString()}
+                  {new Date(item.createdAt).toLocaleDateString()}
                 </td>
 
                 <td className='px-2 py-3'>

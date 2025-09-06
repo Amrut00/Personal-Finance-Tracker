@@ -20,7 +20,7 @@ const TransferMoney = ({ isOpen, setIsOpen, refetch }) => {
     watch,
   } = useForm();
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [accountData, setAccountData] = useState([]);
   const [fromAccountInfo, setFromAccountInfo] = useState({});
@@ -31,8 +31,8 @@ const TransferMoney = ({ isOpen, setIsOpen, refetch }) => {
       setLoading(true);
       const newData = {
         ...data,
-        from_account: fromAccountInfo.id,
-        to_account: toAccountInfo.id,
+        from_account: fromAccountInfo._id,
+        to_account: toAccountInfo._id,
       };
 
       const { data: res } = await api.put(`/transaction/transfer-money`, newData);
@@ -51,7 +51,7 @@ const TransferMoney = ({ isOpen, setIsOpen, refetch }) => {
 
   const getAccountBalance = (setAccount, val) => {
     const filteredAccount = accountData?.find(
-      (account) => account.account_name === val
+      (account) => account.accountName === val
     );
 
     setAccount(filteredAccount);
@@ -66,7 +66,7 @@ const TransferMoney = ({ isOpen, setIsOpen, refetch }) => {
       const { data: res } = await api.get(`/account`);
       setAccountData(res?.data);
     } catch (error) {
-      console.log(error);
+      console.log("Error fetching accounts:", error);
     } finally {
       setIsLoading(false);
     }
@@ -95,8 +95,8 @@ const TransferMoney = ({ isOpen, setIsOpen, refetch }) => {
               >
                 <option disabled selected>Select From Account</option>
                 {accountData?.map((acc, index) => (
-                  <option key={index} value={acc?.account_name}>
-                    {acc?.account_name} - {formatCurrency(acc?.account_balance)}
+                  <option key={index} value={acc?.accountName}>
+                    {acc?.accountName} - {formatCurrency(acc?.balance)}
                   </option>
                 ))}
               </select>
@@ -110,14 +110,14 @@ const TransferMoney = ({ isOpen, setIsOpen, refetch }) => {
               >
                 <option disabled selected>Select To Account</option>
                 {accountData?.map((acc, index) => (
-                  <option key={index} value={acc?.account_name}>
-                    {acc?.account_name} - {formatCurrency(acc?.account_balance)}
+                  <option key={index} value={acc?.accountName}>
+                    {acc?.accountName} - {formatCurrency(acc?.balance)}
                   </option>
                 ))}
               </select>
             </div>
 
-            {fromAccountInfo?.account_balance <= 0 && (
+            {fromAccountInfo?.balance <= 0 && (
               <div className='flex items-center gap-2 bg-yellow-400 text-black p-2 mt-6 rounded'>
                 <MdOutlineWarning size={30} />
                 <span className='text-sm'>
@@ -126,7 +126,7 @@ const TransferMoney = ({ isOpen, setIsOpen, refetch }) => {
               </div>
             )}
 
-            {fromAccountInfo.account_balance > 0 && toAccountInfo.id && (
+            {fromAccountInfo.balance > 0 && toAccountInfo._id ? (
               <>
                 <Input
                   name='amount'
@@ -148,6 +148,13 @@ const TransferMoney = ({ isOpen, setIsOpen, refetch }) => {
                   </Button>
                 </div>
               </>
+            ) : (
+              <div className='text-center py-4 text-gray-500 dark:text-gray-400'>
+                {!fromAccountInfo._id ? "Please select a source account" : 
+                 !toAccountInfo._id ? "Please select a destination account" :
+                 fromAccountInfo.balance <= 0 ? "Insufficient balance in source account" :
+                 "Select accounts to transfer money"}
+              </div>
             )}
           </form>
         )}

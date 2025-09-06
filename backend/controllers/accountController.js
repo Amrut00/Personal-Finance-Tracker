@@ -1,9 +1,9 @@
-import { User, Account } from "../database/mongo-schema.js";
+import { User, Account, Transaction, Category } from "../database/mongo-schema.js";
 
 export const getAccountById = async (req, res) => {
   try {
     const { id } = req.params;
-    const { userId } = req.body.user;
+    const { userId } = req.user;
 
     const account = await Account.findById(id).where('userId').equals(userId);
 
@@ -33,7 +33,7 @@ export const getAccountById = async (req, res) => {
 
 export const getAccounts = async (req, res) => {
   try {
-    const { userId } = req.body.user;
+    const { userId } = req.user;
 
     const accounts = await Account.find({ userId }).sort({ createdAt: -1 });
 
@@ -49,7 +49,7 @@ export const getAccounts = async (req, res) => {
 
 export const createAccount = async (req, res) => {
   try {
-    const { userId } = req.body.user;
+    const { userId } = req.user;
 
     const { name, amount, account_number, account_type } = req.body;
 
@@ -77,13 +77,31 @@ export const createAccount = async (req, res) => {
 
     const description = account.accountName + " (Initial Deposit)";
 
+    // Find or create a default "Initial Deposit" category
+    let defaultCategory = await Category.findOne({ 
+      name: "Initial Deposit", 
+      type: "income", 
+      userId 
+    });
+    
+    if (!defaultCategory) {
+      defaultCategory = new Category({
+        name: "Initial Deposit",
+        type: "income",
+        userId
+      });
+      await defaultCategory.save();
+    }
+
     const transaction = new Transaction({
       userId,
       description,
       type: "income",
       status: "Completed",
       amount,
-      source: account.accountName
+      source: account.accountName,
+      accountId: account._id,
+      categoryId: defaultCategory._id
     });
     await transaction.save();
 
@@ -107,7 +125,7 @@ export const createAccount = async (req, res) => {
 
 export const addMoneyToAccount = async (req, res) => {
   try {
-    const { userId } = req.body.user;
+    const { userId } = req.user;
     const { id } = req.params;
     const { amount } = req.body;
 
@@ -136,13 +154,31 @@ export const addMoneyToAccount = async (req, res) => {
 
     const description = updatedAccount.accountName + " (Deposit)";
 
+    // Find or create a default "Deposit" category
+    let depositCategory = await Category.findOne({ 
+      name: "Deposit", 
+      type: "income", 
+      userId 
+    });
+    
+    if (!depositCategory) {
+      depositCategory = new Category({
+        name: "Deposit",
+        type: "income",
+        userId
+      });
+      await depositCategory.save();
+    }
+
     const transaction = new Transaction({
       userId,
       description,
       type: "income",
       status: "Completed",
       amount,
-      source: account.accountName
+      source: account.accountName,
+      accountId: account._id,
+      categoryId: depositCategory._id
     });
     await transaction.save();
 

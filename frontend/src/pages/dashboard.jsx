@@ -18,8 +18,8 @@ const Dashboard = () => {
     const URL = `/transaction/dashboard`;
 
     try {
-      const { data } = await api.get(URL);
-      setData(data || {});
+      const { data: response } = await api.get(URL);
+      setData(response?.data || {});
     } catch (error) {
       console.error("Dashboard fetch error:", error);
       toast.error(error?.response?.data?.message || "Something unexpected happened. Try again later.");

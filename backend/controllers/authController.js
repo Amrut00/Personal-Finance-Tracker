@@ -45,7 +45,11 @@ export const signupUser = async (req, res) => {
         user: {
           id: user._id,
           firstname: user.firstname,
-          email: user.email
+          lastname: user.lastname,
+          email: user.email,
+          contact: user.contact || "",
+          country: user.country || "",
+          currency: user.currency || "INR"
         }
       });
     } catch (error) {
@@ -59,7 +63,7 @@ export const signinUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
       return res.status(401).json({
@@ -84,7 +88,11 @@ export const signinUser = async (req, res) => {
       user: {
         id: user._id,
         firstname: user.firstname,
-        email: user.email
+        lastname: user.lastname,
+        email: user.email,
+        contact: user.contact || "",
+        country: user.country || "",
+        currency: user.currency || "INR"
       }
     });
   } catch (error) {

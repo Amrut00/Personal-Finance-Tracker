@@ -11,7 +11,12 @@ import { Button } from './ui/button';
 import { toast } from 'sonner';
 import api from '../libs/apiCall';
 
-const accounts = ["Cash", "Crypto", "Paypal", "Visa Debit Card"];
+const accounts = [
+  { name: "Cash", type: "cash" },
+  { name: "Crypto", type: "investment" },
+  { name: "Paypal", type: "bank" },
+  { name: "Visa Debit Card", type: "credit" }
+];
 
 const AddAccount = ({ isOpen, setIsOpen, refetch}) => {
 
@@ -29,9 +34,9 @@ const AddAccount = ({ isOpen, setIsOpen, refetch}) => {
   const onSubmit = async (data) => {
     try {
       setLoading(true);
-      const newData = { ...data, name: selectedAccount};
+      const newData = { ...data, name: selectedAccount.name, account_type: selectedAccount.type};
 
-      const {data: res} = await api.post(`/account/create`, newData);
+      const {data: res} = await api.post(`/account/`, newData);
       if(res?.data) {
         toast.success(res?.message);
         setIsOpen(false);
@@ -65,24 +70,27 @@ const AddAccount = ({ isOpen, setIsOpen, refetch}) => {
               <p>
                 Select Account
               </p>
-              <select
-                onChange={(e) => setSelectedAccount(e.target.value)}
-                className='bg-transparent appearance-none border border-gray-300 dark:border-gray-800 rounded w-full py-2 px-3 text-gray-700
-                 dark:text-gray-500 outline-none focus:ring-1 ring-blue-500 dark:placeholder:text-gray-700'
-              >
-                {accounts.map((acc, index) => (
-                  <option
-                    key={index} 
-                    value={acc}
-                    className='w-full flex items-center justify-center dark:bg-slate-900'
-                  >
-                    {acc}
-                  </option>
-                ))}
-              </select>
+               <select
+                 onChange={(e) => {
+                   const selectedIndex = e.target.selectedIndex;
+                   setSelectedAccount(accounts[selectedIndex]);
+                 }}
+                 className='bg-transparent appearance-none border border-gray-300 dark:border-gray-800 rounded w-full py-2 px-3 text-gray-700
+                  dark:text-gray-500 outline-none focus:ring-1 ring-blue-500 dark:placeholder:text-gray-700'
+               >
+                 {accounts.map((acc, index) => (
+                   <option
+                     key={index} 
+                     value={acc.type}
+                     className='w-full flex items-center justify-center dark:bg-slate-900'
+                   >
+                     {acc.name}
+                   </option>
+                 ))}
+               </select>
             </div>
 
-            {user?.accounts?.includes(selectedAccount) && (
+             {user?.accounts?.includes(selectedAccount.name) && (
               <div className='flex items-center gap-2 bg-yellow-400 text-black p-2 mt-6 rounded'>
                 <MdOutlineWarning size={30}/>
                 <span className='text-sm' >
@@ -91,7 +99,7 @@ const AddAccount = ({ isOpen, setIsOpen, refetch}) => {
               </div>
             )}
 
-            {!user?.accounts?.includes(selectedAccount) && (
+             {!user?.accounts?.includes(selectedAccount.name) && (
               <>
                 <Input
                   name='account_number'

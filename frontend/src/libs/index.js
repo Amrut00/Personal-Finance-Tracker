@@ -40,7 +40,7 @@ export const getDateSevenDaysAgo = () => {
 
 export async function fetchCountries() {
   try {
-    const response = await fetch("https://restcountries.com/v3.1/all");
+    const response = await fetch("https://restcountries.com/v3.1/all?fields=name,currencies,flags");
     const data = await response.json();
 
     if (response.ok) {

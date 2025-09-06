@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   CartesianGrid,
   Legend,
@@ -10,41 +10,21 @@ import {
   YAxis,
 } from "recharts";
 import Title from "./title";
-import api from "../libs/apiCall";
 
-const Chart = () => {
-  const [chartData, setChartData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchData = async () => {
-    try {
-      const { data } = await api.get("/transaction/dashboard");
-
-      // Transform data into chart-friendly format
-      const monthlyData = data.chartData?.map((item) => ({
-        label: item.label,
-        income: Number(item.income) || 0,
-        expense: Number(item.expense) || 0,
-      })) || [];
-
-      setChartData(monthlyData);
-    } catch (error) {
-      console.error("Error fetching chart data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+const Chart = ({ data }) => {
+  // Transform data into chart-friendly format
+  const chartData = data?.map((item) => ({
+    label: item.label,
+    income: Number(item.income) || 0,
+    expense: Number(item.expense) || 0,
+  })) || [];
 
   return (
     <div className="w-full flex-1">
       <Title title="Transaction Activity" />
 
-      {isLoading ? (
-        <p className="text-center py-10">Loading Chart...</p>
+      {chartData.length === 0 ? (
+        <p className="text-center py-10 text-gray-500">No transaction data available</p>
       ) : (
         <ResponsiveContainer width="100%" height={500} className="mt-5">
           <LineChart width={500} height={300} data={chartData}>

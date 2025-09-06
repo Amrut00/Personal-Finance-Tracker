@@ -1,7 +1,6 @@
-import React, { useEffect, useState, Fragment } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import useStore from '../store';
 import { useForm } from 'react-hook-form';
-import { Combobox, ComboboxInput, ComboboxOption, ComboboxOptions, ComboboxButton, Transition } from '@headlessui/react';
 import { fetchCountries } from '../libs';
 import { BsChevronExpand } from 'react-icons/bs';
 import Input from './ui/input';
@@ -11,7 +10,7 @@ import { BiLoader, BiCheck } from 'react-icons/bi';
 import { toast } from 'sonner';
 
 const SettingsForm = () => {
-  const { user, theme, setTheme } = useStore((state) => state);
+  const { user, theme, setTheme, updateUser } = useStore((state) => state);
   const {
     register,
     handleSubmit,
@@ -25,6 +24,7 @@ const SettingsForm = () => {
     currency: user?.currency || "",
   });
   const [query, setQuery] = useState("");
+  const [inputValue, setInputValue] = useState(user?.country || "");
   const [countriesData, setCountriesData] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -39,8 +39,7 @@ const SettingsForm = () => {
       const { data: res } = await api.put(`/user`, newData);
 
       if (res?.user) {
-        const newUser = { ...res.user, token: user.token };
-        localStorage.setItem("user", JSON.stringify(newUser));
+        updateUser(res.user);
         toast.success(res?.message);
       }
     } catch (error) {
@@ -62,103 +61,117 @@ const SettingsForm = () => {
         country.country.toLowerCase().includes(query.toLowerCase())
       );
 
+
   const getCountriesList = async () => {
-    const data = await fetchCountries();
-    setCountriesData(data);
+    try {
+      const data = await fetchCountries();
+      setCountriesData(data);
+    } catch (error) {
+      console.error("Error loading countries:", error);
+      setCountriesData([]);
+    }
   };
 
   useEffect(() => {
     getCountriesList();
   }, []);
 
+  useEffect(() => {
+    setInputValue(user?.country || "");
+    setSelectedCountry({
+      country: user?.country || "",
+      currency: user?.currency || "",
+    });
+  }, [user]);
+
   const Countries = () => {
-    const [isOpen, setIsOpen] = useState(false); 
-  
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+    const inputRef = useRef(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setIsOpen(false);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, []);
+
+    const handleInputChange = (e) => {
+      const value = e.target.value;
+      setInputValue(value);
+      setQuery(value);
+      setIsOpen(true);
+    };
+
+    const handleCountrySelect = (country) => {
+      setSelectedCountry(country);
+      setInputValue(country.country);
+      setQuery("");
+      setIsOpen(false);
+    };
+
     return (
-      <div className='w-full'>
-        <Combobox value={selectedCountry} onChange={(value) => {
-          setSelectedCountry(value);
-          setIsOpen(false); 
-        }}>
-          <div className='relative mt-1'>
-            <div>
-                <ComboboxInput
-                    className='inputStyles'
-                    displayValue={(country) => country?.country || ""}
-                    onChange={(e) => {
-                        console.log("Typing:", e.target.value);
-                        setQuery(e.target.value);
-                        setIsOpen(true); 
-                    }}
-                    onFocus={() => setIsOpen(true)}
-                    placeholder="Search for a country..."
-                />
-              <ComboboxButton
-                className='absolute inset-y-0 right-0 flex items-center pr-2'
-                onClick={() => setIsOpen((prev) => !prev)} 
-              >
-                <BsChevronExpand className='text-gray-400' />
-              </ComboboxButton>
-            </div>
-  
-            <Transition
-              as={Fragment}
-              show={isOpen}
-              leave='transition ease-in duration-100'
-              leaveFrom='opacity-100'
-              leaveTo='opacity-0'
-              afterLeave={() => setQuery("")}
-            >
-              <ComboboxOptions className='absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-slate-900 py-2 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm'>
-                {filteredCountries.length === 0 && query !== "" ? (
-                  <div className='relative cursor-default select-none px-4 py-2 text-gray-700 dark:text-gray-500'>
-                    No countries found.
+      <div className='w-full relative' ref={dropdownRef}>
+        <div className='relative'>
+          <input
+            ref={inputRef}
+            type="text"
+            className='inputStyles'
+            value={inputValue}
+            onChange={handleInputChange}
+            onFocus={() => setIsOpen(true)}
+            placeholder="Search for a country..."
+            autoComplete="off"
+          />
+          <button
+            type="button"
+            className='absolute inset-y-0 right-0 flex items-center pr-2'
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            <BsChevronExpand className='text-gray-400' />
+          </button>
+        </div>
+
+        {isOpen && (
+          <div className='absolute z-50 w-full py-1 mt-1 overflow-auto text-base bg-white dark:bg-slate-900 rounded-md shadow-lg max-h-60 ring-1 ring-black/5 focus:outline-none sm:text-sm'>
+            {filteredCountries.length === 0 && query !== "" ? (
+              <div className='relative px-4 py-2 text-gray-700 dark:text-gray-500 cursor-default select-none'>
+                No countries found.
+              </div>
+            ) : (
+              filteredCountries.map((country, index) => (
+                <div
+                  key={country.country + index}
+                  className='relative cursor-pointer select-none py-2 pl-10 pr-4 hover:bg-violet-600 hover:text-white text-gray-900 dark:text-gray-100'
+                  onClick={() => handleCountrySelect(country)}
+                >
+                  <div className='flex items-center gap-2'>
+                    <img
+                      src={country.flag}
+                      alt={country.country}
+                      className='w-8 h-5 rounded-sm object-cover'
+                    />
+                    <span className='block truncate font-normal'>
+                      {country.country}
+                    </span>
                   </div>
-                ) : (
-                  filteredCountries.map((country, index) => (
-                    <ComboboxOption
-                      key={country.country + index}
-                      className={({ active }) =>
-                        `relative cursor-default select-none py-2 pl-10 pr-4 ${
-                          active ? "bg-violet-600/20 text-white" : "text-gray-900"
-                        }`
-                      }
-                      value={country}
-                    >
-                      {({ selected, active }) => (
-                        <>
-                          <div className='flex items-center gap-2'>
-                            <img
-                              src={country.flag}
-                              alt={country.country}
-                              className='w-8 h-5 rounded-sm object-cover'
-                            />
-                            <span
-                              className={`block truncate ${
-                                selected ? "font-medium" : "font-normal"
-                              }`}
-                            >
-                              {country.country}
-                            </span>
-                          </div>
-                          {selected && (
-                            <span
-                              className={`absolute inset-y-0 left-0 flex items-center pl-3 ${
-                                active ? "text-white" : "text-teal-600"
-                              }`}
-                            >
-                              <BiCheck className='h-5 w-5' aria-hidden='true' />
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </ComboboxOption>
-                  ))
-                )}
-              </ComboboxOptions>
-            </Transition>
+                  {selectedCountry?.country === country.country && (
+                    <span className='absolute inset-y-0 left-0 flex items-center pl-3 text-violet-600'>
+                      <BiCheck className='h-5 w-5' />
+                    </span>
+                  )}
+                </div>
+              ))
+            )}
           </div>
-        </Combobox>
+        )}
       </div>
     );
   };
@@ -249,14 +262,14 @@ const SettingsForm = () => {
       <div className='flex items-center gap-6 justify-end pb-10'>
         <Button
           variant='outline'
-          loading={loading}
+          disabled={loading}
           type="reset"
           className="px-6 bg-transparent text-black dark:text-white dark:bg-gray-800"
         >
           Reset
         </Button>
         <Button
-          loading={loading}
+          disabled={loading}
           type="submit"
           className="px-8 bg-violet-800 text-white"
         >

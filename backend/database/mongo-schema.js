@@ -20,6 +20,18 @@ const UserSchema = new mongoose.Schema({
         lowercase: true,
         match: /^\S+@\S+\.\S+$/ // Basic email validation
     },
+    contact: {
+        type: String,
+        trim: true
+    },
+    country: {
+        type: String,
+        trim: true
+    },
+    currency: {
+        type: String,
+        default: "INR"
+    },
     password: {
         type: String,
         required: function() { return !this.googleId && !this.githubId; },

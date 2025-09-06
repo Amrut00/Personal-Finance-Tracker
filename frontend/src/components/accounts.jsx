@@ -12,7 +12,7 @@ const ICONS = {
             <FaBtc size={26} />
         </div>
     ),
-    "Visa debit card": (
+    "visa debit card": (
         <div className="w-12 h-12 bg-blue-600 text-white flex items-center justify-center rounded-full" >
             <RiVisaLine size={26} />
         </div>
@@ -25,6 +25,21 @@ const ICONS = {
     paypal: (
         <div className="w-12 h-12 bg-blue-700 text-white flex items-center justify-center rounded-full" >
             <FaPaypal size={26} />
+        </div>
+    ),
+    bank: (
+        <div className="w-12 h-12 bg-green-600 text-white flex items-center justify-center rounded-full" >
+            <span className="text-lg font-bold">B</span>
+        </div>
+    ),
+    credit: (
+        <div className="w-12 h-12 bg-purple-600 text-white flex items-center justify-center rounded-full" >
+            <span className="text-lg font-bold">C</span>
+        </div>
+    ),
+    investment: (
+        <div className="w-12 h-12 bg-yellow-600 text-white flex items-center justify-center rounded-full" >
+            <span className="text-lg font-bold">I</span>
         </div>
     ),
 };
@@ -40,25 +55,25 @@ const Accounts = ({data}) => {
       <div className='w-full'>
         {data?.map((item, index) => (
             <div 
-                key={index + item?.account_name} 
+                key={index + item?.accountName} 
                 className='flex items-center justify-between mt-6'
             >
             <div className='flex items-center gap-4'>
-                <div>{ICONS[item?.account_name?.toLowerCase()]}</div>
+                <div>{ICONS[item?.accountName?.toLowerCase()]}</div>
 
                 <div>
                     <p className='text-black dark:text-gray-400 text-base 2xl:text-lg'>
-                        {item.account_name}
+                        {item.accountName}
                     </p>
                     <span className='text-gray-600 text-sm 2xl:text-base'>
-                        {maskAccountNumber(item.account_number)}
+                        {maskAccountNumber(item.accountNumber)}
                     </span>
                 </div>
             </div>
 
             <div>
               <p className='text-lg 2xl:text-xl text-black dark:text-gray-400 font-medium'>
-                {formatCurrency(item?.account_balance)}
+                {formatCurrency(item?.balance)}
               </p>
               <span className='text-sm 2xl:text-sm text-gray-600 dark:text-violet-700'>
                 Account Balance

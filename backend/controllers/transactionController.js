@@ -1,5 +1,6 @@
 import { getMonthName } from "../libs/index.js";
-import { Transaction, Account } from "../database/mongo-schema.js";
+import { Transaction, Account, Category, Budget } from "../database/mongo-schema.js";
+import mongoose from "mongoose";
 
 export const getTransactions = async (req, res) => {
   try {
@@ -9,24 +10,35 @@ export const getTransactions = async (req, res) => {
     const sevenDaysAgo = _sevenDaysAgo.toISOString().split("T")[0];
 
     const { df, dt, s } = req.query;
-    const { userId } = req.body.user;
+    const { userId } = req.user;
 
     const startDate = new Date(df || sevenDaysAgo);
     const endDate = new Date(dt || new Date());
+    
+    // If a specific end date is provided, set it to end of day
+    if (dt) {
+      endDate.setHours(23, 59, 59, 999);
+    }
 
-    const transactions = await Transaction.find({
+    let query = {
       userId,
       createdAt: {
         $gte: startDate,
         $lte: endDate
-      },
-      $or: [
+      }
+    };
+
+    // Only add search filter if search parameter is provided and not empty
+    if (s && s.trim() !== '') {
+      query.$or = [
         { description: { $regex: s, $options: 'i' } },
         { status: { $regex: s, $options: 'i' } },
         { source: { $regex: s, $options: 'i' } },
         { category: { $regex: s, $options: 'i' } }
-      ]
-    }).sort({ createdAt: -1 });
+      ];
+    }
+
+    const transactions = await Transaction.find(query).sort({ createdAt: -1 });
 
     res.status(200).json({ status: "success", data: transactions });
   } catch (error) {
@@ -35,20 +47,24 @@ export const getTransactions = async (req, res) => {
   }
 };
 
+
 export const getDashboardInformation = async (req, res) => {
   try {
-    const { userId } = req.body.user;
+    const { userId } = req.user;
     let totalIncome = 0;
     let totalExpense = 0;
 
     const transactionsResult = await Transaction.aggregate([
-      { $match: { userId } },
+      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: "$type", totalAmount: { $sum: "$amount" } } }
     ]);
 
     transactionsResult.forEach((transaction) => {
-      if (transaction._id === "income") totalIncome += transaction.totalAmount;
-      else totalExpense += transaction.totalAmount;
+      if (transaction._id === "income") {
+        totalIncome += transaction.totalAmount;
+      } else if (transaction._id === "expense") {
+        totalExpense += transaction.totalAmount;
+      }
     });
 
     const availableBalance = totalIncome - totalExpense;
@@ -57,13 +73,13 @@ export const getDashboardInformation = async (req, res) => {
     const start_Date = new Date(year, 0, 1);
     const end_Date = new Date(year, 11, 31, 23, 59, 59);
 
-    const budgets = await Transaction.aggregate([
-      { $match: { userId, createdAt: { $gte: start_Date, $lte: end_Date } } },
+    const chartDataAggregation = await Transaction.aggregate([
+      { $match: { userId: new mongoose.Types.ObjectId(userId), createdAt: { $gte: start_Date, $lte: end_Date } } },
       { $group: { _id: { month: { $month: "$createdAt" }, type: "$type" }, totalAmount: { $sum: "$amount" } } }
     ]);
 
     const data = new Array(12).fill().map((_, index) => {
-      const monthData = budgets.filter(item => item._id.month === index + 1);
+      const monthData = chartDataAggregation.filter(item => item._id.month === index + 1);
       const income = parseFloat(monthData.find(item => item._id.type === "income")?.totalAmount || 0);
       const expense = parseFloat(monthData.find(item => item._id.type === "expense")?.totalAmount || 0);
 
@@ -74,24 +90,26 @@ export const getDashboardInformation = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(5);
 
+    let lastAccount = [];
     try {
-      const lastAccount = await Account.find({ userId })
+      lastAccount = await Account.find({ userId })
         .sort({ createdAt: -1 })
         .limit(4);
-      return lastAccount;
     } catch (error) {
       console.error("Error fetching accounts:", error);
-      return [];
+      lastAccount = [];
     }
 
     res.status(200).json({
       status: "success",
-      availableBalance,
-      totalIncome,
-      totalExpense,
-      chartData: data,
-      lastTransactions,
-      lastAccount,
+      data: {
+        availableBalance,
+        totalIncome,
+        totalExpense,
+        chartData: data,
+        lastTransactions,
+        lastAccount,
+      }
     });
   } catch (error) {
     console.log(error);
@@ -101,7 +119,7 @@ export const getDashboardInformation = async (req, res) => {
 
 export const addTransaction = async (req, res) => {
   try {
-    const { userId } = req.body.user;
+    const { userId } = req.user;
     const account_id = req.params.account_id || req.body.account_id;
     const { description, source, amount, category } = req.body;
 
@@ -137,6 +155,22 @@ export const addTransaction = async (req, res) => {
       { session }
     );
 
+    // Find or create category
+    let transactionCategory = await Category.findOne({ 
+      name: category, 
+      type: "expense", 
+      userId 
+    });
+    
+    if (!transactionCategory) {
+      transactionCategory = new Category({
+        name: category,
+        type: "expense",
+        userId
+      });
+      await transactionCategory.save();
+    }
+
     const transaction = new Transaction({
       userId,
       accountId: account_id,
@@ -145,7 +179,8 @@ export const addTransaction = async (req, res) => {
       status: "Completed",
       amount,
       source,
-      category
+      category,
+      categoryId: transactionCategory._id
     });
     await transaction.save({ session });
 
@@ -163,10 +198,12 @@ export const addTransaction = async (req, res) => {
     res.status(200).json({
       status: "success",
       message: "Transaction completed and budget updated.",
-      data: newTransaction.rows[0],
+      data: transaction,
     });
   } catch (error) {
-    await session.abortTransaction();
+    if (session) {
+      await session.abortTransaction();
+    }
     console.error("Add Transaction Error:", error);
     res.status(500).json({ status: "failed", message: error.message });
   }
@@ -176,6 +213,10 @@ export const editTransaction = async (req, res) => {
   try {
     const { transaction_id } = req.params;
     const { account_id, description, source, amount, category, type, status } = req.body;
+
+    if (!account_id) {
+      return res.status(400).json({ status: "failed", message: "Account ID is required." });
+    }
 
     const oldTransaction = await Transaction.findById(transaction_id);
 
@@ -190,36 +231,59 @@ export const editTransaction = async (req, res) => {
     editSession.startTransaction();
 
     // Update account balances
-    const updateOldAccount = await Account.findByIdAndUpdate(
-      oldTransaction.account_id,
-      { $inc: { balance: oldTransaction.type === 'income' ? -oldAmount : oldAmount } },
-      { session: editSession }
-    );
 
-    const updateNewAccount = await Account.findByIdAndUpdate(
-      account_id,
-      { $inc: { balance: type === 'income' ? newAmount : -newAmount } },
-      { session: editSession }
-    );
+    // Revert the old transaction's effect on the old account
+    if (oldTransaction.accountId) {
+      await Account.findByIdAndUpdate(
+        oldTransaction.accountId,
+        { $inc: { balance: oldTransaction.type === 'income' ? -oldAmount : oldAmount } },
+        { session: editSession }
+      );
+    }
+
+    // Apply the new transaction's effect on the new account
+    if (account_id) {
+      await Account.findByIdAndUpdate(
+        account_id,
+        { $inc: { balance: type === 'income' ? newAmount : -newAmount } },
+        { session: editSession }
+      );
+    }
 
     // Update budget for old transaction
-    const oldBudget = await Budget.findOne({ userId: oldTransaction.user_id, category: oldTransaction.category });
+    const oldBudget = await Budget.findOne({ userId: oldTransaction.userId, category: oldTransaction.category });
     if (oldBudget) {
       await Budget.findByIdAndUpdate(
         oldBudget._id,
         { $inc: { amountSpent: -oldAmount } },
-        { session }
+        { session: editSession }
       );
     }
 
     // Update budget for new transaction
-    const newBudget = await Budget.findOne({ userId: oldTransaction.user_id, category });
+    const newBudget = await Budget.findOne({ userId: oldTransaction.userId, category });
     if (newBudget) {
       await Budget.findByIdAndUpdate(
         newBudget._id,
         { $inc: { amountSpent: newAmount } },
-        { session }
+        { session: editSession }
       );
+    }
+
+    // Find or create category for new transaction
+    let newTransactionCategory = await Category.findOne({ 
+      name: category, 
+      type: type, 
+      userId: oldTransaction.userId 
+    });
+    
+    if (!newTransactionCategory) {
+      newTransactionCategory = new Category({
+        name: category,
+        type: type,
+        userId: oldTransaction.userId
+      });
+      await newTransactionCategory.save();
     }
 
     // Update transaction
@@ -233,16 +297,17 @@ export const editTransaction = async (req, res) => {
         category,
         type,
         status,
+        categoryId: newTransactionCategory._id,
         updatedAt: new Date()
       },
-      { session }
+      { session: editSession }
     );
 
-    await session.commitTransaction();
+    await editSession.commitTransaction();
 
     res.status(200).json({ status: "success", message: "Transaction and account updated successfully." });
   } catch (error) {
-    await session.abortTransaction();
+    await editSession.abortTransaction();
     console.error("Edit Transaction Error:", error);
     res.status(500).json({ status: "failed", message: error.message });
   }
@@ -250,14 +315,15 @@ export const editTransaction = async (req, res) => {
 
 
 export const deleteTransaction = async (req, res) => {
+  let session;
   try {
     const { transaction_id } = req.params;
-    const { userId } = req.body.user;
+    const { userId } = req.user;
 
-    const session = await mongoose.startSession();
+    session = await mongoose.startSession();
     session.startTransaction();
 
-    const transaction = await Transaction.findById(transactionId);
+    const transaction = await Transaction.findById(transaction_id);
 
     if (!transaction) {
       await session.abortTransaction();
@@ -280,9 +346,12 @@ export const deleteTransaction = async (req, res) => {
         );
       }
 
+      // Reverse the transaction effect on account balance
+      const balanceChange = transaction.type === 'income' ? -transaction.amount : transaction.amount;
+
       await Account.findByIdAndUpdate(
         transaction.accountId,
-        { $inc: { balance: transaction.type === 'income' ? -transaction.amount : transaction.amount } },
+        { $inc: { balance: balanceChange } },
         { session }
       );
     }
@@ -293,15 +362,122 @@ export const deleteTransaction = async (req, res) => {
 
     res.status(200).json({ status: "success", message: "Transaction deleted successfully" });
   } catch (error) {
-    await session.abortTransaction();
+    if (session) {
+      await session.abortTransaction();
+    }
     console.error("Delete Transaction Error:", error);
+    res.status(500).json({ status: "failed", message: error.message });
+  }
+};
+
+// Function to recalculate account balances based on transactions
+export const recalculateAccountBalances = async (req, res) => {
+  try {
+    const { userId } = req.user;
+    
+    console.log("Recalculating account balances for user:", userId);
+    
+    // Get all accounts for the user
+    const accounts = await Account.find({ userId });
+    
+    for (const account of accounts) {
+      // Get all transactions for this account
+      const transactions = await Transaction.find({ 
+        userId, 
+        accountId: account._id 
+      });
+      
+      // Calculate the correct balance
+      let calculatedBalance = 0;
+      transactions.forEach(transaction => {
+        if (transaction.type === 'income') {
+          calculatedBalance += transaction.amount;
+        } else {
+          calculatedBalance -= transaction.amount;
+        }
+      });
+      
+      console.log(`Account ${account.accountName}:`, {
+        currentBalance: account.balance,
+        calculatedBalance: calculatedBalance,
+        transactionCount: transactions.length
+      });
+      
+      // Update the account balance
+      await Account.findByIdAndUpdate(account._id, { 
+        balance: calculatedBalance 
+      });
+    }
+    
+    res.status(200).json({ 
+      status: "success", 
+      message: "Account balances recalculated successfully" 
+    });
+  } catch (error) {
+    console.error("Recalculate balances error:", error);
+    res.status(500).json({ status: "failed", message: error.message });
+  }
+};
+
+// Quick fix for account balance issues
+export const fixAccountBalance = async (req, res) => {
+  try {
+    const { userId } = req.user;
+    const { accountId } = req.params;
+    
+    console.log("Fixing account balance for:", accountId);
+    
+    // Get the account
+    const account = await Account.findById(accountId);
+    if (!account) {
+      return res.status(404).json({ status: "failed", message: "Account not found" });
+    }
+    
+    // Get all transactions for this account
+    const transactions = await Transaction.find({ 
+      userId, 
+      accountId: account._id 
+    });
+    
+    // Calculate the correct balance
+    let calculatedBalance = 0;
+    transactions.forEach(transaction => {
+      if (transaction.type === 'income') {
+        calculatedBalance += transaction.amount;
+      } else {
+        calculatedBalance -= transaction.amount;
+      }
+    });
+    
+    console.log(`Fixing account ${account.accountName}:`, {
+      currentBalance: account.balance,
+      calculatedBalance: calculatedBalance,
+      transactionCount: transactions.length
+    });
+    
+    // Update the account balance
+    await Account.findByIdAndUpdate(account._id, { 
+      balance: calculatedBalance 
+    });
+    
+    res.status(200).json({ 
+      status: "success", 
+      message: `Account balance fixed. New balance: ${calculatedBalance}`,
+      data: {
+        accountName: account.accountName,
+        oldBalance: account.balance,
+        newBalance: calculatedBalance
+      }
+    });
+  } catch (error) {
+    console.error("Fix account balance error:", error);
     res.status(500).json({ status: "failed", message: error.message });
   }
 };
 
 export const transferMoneyToAccount = async (req, res) => {
   try {
-    const { userId } = req.body.user;
+    const { userId } = req.user;
     const { from_account, to_account, amount } = req.body;
 
     if (!(from_account && to_account && amount)) {
@@ -328,7 +504,7 @@ export const transferMoneyToAccount = async (req, res) => {
       return res.status(404).json({ status: "failed", message: "Receiver account not found." });
     }
 
-    if (newAmount > fromAccount.account_balance) {
+    if (newAmount > fromAccount.balance) {
       return res.status(403).json({ status: "failed", message: "Insufficient balance." });
     }
 
@@ -347,25 +523,60 @@ export const transferMoneyToAccount = async (req, res) => {
       { session }
     );
 
+    // Find or create Transfer categories
+    let transferOutCategory = await Category.findOne({ 
+      name: "Transfer Out", 
+      type: "expense", 
+      userId 
+    });
+    
+    if (!transferOutCategory) {
+      transferOutCategory = new Category({
+        name: "Transfer Out",
+        type: "expense",
+        userId
+      });
+      await transferOutCategory.save();
+    }
+
+    let transferInCategory = await Category.findOne({ 
+      name: "Transfer In", 
+      type: "income", 
+      userId 
+    });
+    
+    if (!transferInCategory) {
+      transferInCategory = new Category({
+        name: "Transfer In",
+        type: "income",
+        userId
+      });
+      await transferInCategory.save();
+    }
+
     const fromTransaction = new Transaction({
       userId,
       accountId: from_account,
-      description: `Transfer to ${toAccount.account_name}`,
+      description: `Transfer to ${toAccount.accountName}`,
       type: "expense",
       status: "Completed",
       amount: newAmount,
-      source: fromAccount.account_name
+      source: fromAccount.accountName,
+      category: "Transfer Out",
+      categoryId: transferOutCategory._id
     });
     await fromTransaction.save({ session });
 
     const toTransaction = new Transaction({
       userId,
       accountId: to_account,
-      description: `Received from ${fromAccount.account_name}`,
+      description: `Received from ${fromAccount.accountName}`,
       type: "income",
       status: "Completed",
       amount: newAmount,
-      source: toAccount.account_name
+      source: toAccount.accountName,
+      category: "Transfer In",
+      categoryId: transferInCategory._id
     });
     await toTransaction.save({ session });
 
@@ -389,8 +600,7 @@ export const uploadReceipt = async (req, res) => {
 
     await Transaction.findByIdAndUpdate(
       transaction_id,
-      { receiptUrl },
-      { session }
+      { receiptUrl }
     );
 
     res.status(200).json({ status: 'success', message: 'Receipt uploaded', receiptUrl });

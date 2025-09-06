@@ -11,7 +11,7 @@ const ViewTransaction = ({ data, isOpen, setIsOpen, refreshData }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState({});
   const [accountData, setAccountData] = useState([]);
-  const [selectedAccountId, setSelectedAccountId] = useState(data?.account_id || "");
+  const [selectedAccountId, setSelectedAccountId] = useState(data?.accountId || "");
   const [description, setDescription] = useState(data?.description || "");
   const [status, setStatus] = useState(data?.status || "");
   const [amount, setAmount] = useState(data?.amount || "");
@@ -22,7 +22,7 @@ const ViewTransaction = ({ data, isOpen, setIsOpen, refreshData }) => {
 
   useEffect(() => {
     setFormData(data || {});
-    setSelectedAccountId(data?.account_id || "");
+    setSelectedAccountId(data?.accountId || "");
     setDescription(data?.description || "");
     setStatus(data?.status || "");
     setAmount(data?.amount || "");
@@ -57,25 +57,28 @@ const ViewTransaction = ({ data, isOpen, setIsOpen, refreshData }) => {
 
   const handleSave = async () => {
     try {
-      const selectedAccount = accountData.find(acc => acc.id === Number(selectedAccountId));
+      const selectedAccount = accountData.find(acc => acc._id === selectedAccountId);
       const payload = {
-        id: data?.id,
+        id: data?._id,
         account_id: selectedAccountId,
         description: description,
-        source: selectedAccount?.account_name || data?.source, // Use selected account as source
+        source: selectedAccount?.accountName || data?.source, // Use selected account as source
         amount: amount,
         type: type,
         status: status,
         category: category, // Added category to payload
       };
 
-      const { data: res } = await api.put(`/transaction/edit-transaction/${data?.id}`, payload);
+      const { data: res } = await api.put(`/transaction/edit-transaction/${data?._id}`, payload);
 
       if (res?.status === "success") {
         toast.success("Transaction updated successfully");
         setIsEditMode(false);
         refreshData();
-        setIsOpen(false);
+        // Close modal after refresh is called
+        setTimeout(() => {
+          setIsOpen(false);
+        }, 200);
       }
     } catch (error) {
       console.error("Error updating transaction", error);
@@ -85,7 +88,7 @@ const ViewTransaction = ({ data, isOpen, setIsOpen, refreshData }) => {
 
   const handleDelete = async () => {
     try {
-      const { data: res } = await api.delete(`/transaction/${data?.id}`);
+      const { data: res } = await api.delete(`/transaction/${data?._id}`);
       
       if (res?.status === "success") {
         toast.success("Transaction deleted successfully");
@@ -121,8 +124,8 @@ const ViewTransaction = ({ data, isOpen, setIsOpen, refreshData }) => {
                 className='w-full border border-gray-300 p-2 rounded'
               >
                 {accountData.map((acc) => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.account_name} - {formatCurrency(acc.account_balance)}
+                  <option key={acc._id} value={acc._id}>
+                    {acc.accountName} - {formatCurrency(acc.balance)}
                   </option>
                 ))}
               </select>
@@ -185,7 +188,7 @@ const ViewTransaction = ({ data, isOpen, setIsOpen, refreshData }) => {
               <div className='flex items-center gap-2 text-gray-600 dark:text-gray-500'>
                 <p>
                   {
-                    accountData.find(acc => acc.id === data?.account_id)?.account_name ||
+                    accountData.find(acc => acc._id === data?.accountId)?.accountName ||
                     data?.source
                   }
                 </p>
@@ -195,8 +198,8 @@ const ViewTransaction = ({ data, isOpen, setIsOpen, refreshData }) => {
               <div className='mb-10'>
                 <p className='text-xl text-black dark:text-white'>{data?.description}</p>
                 <span className='text-xs text-gray-600'>
-                  {new Date(data?.createdat).toLocaleDateString("en-IN", { dateStyle: "full" })}{" "}
-                  {new Date(data?.createdat).toLocaleTimeString("en-IN")}
+                  {new Date(data?.createdAt).toLocaleDateString("en-IN", { dateStyle: "full" })}{" "}
+                  {new Date(data?.createdAt).toLocaleTimeString("en-IN")}
                 </span>
               </div>
 

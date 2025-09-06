@@ -3,7 +3,7 @@ import { comparePassword, hashPassword } from "../libs/index.js";
 
 export const getUser = async (req, res) => {
   try {
-    const { userId } = req.body.user;
+    const { userId } = req.user;
 
     const user = await User.findById(userId);
 
@@ -27,7 +27,7 @@ export const getUser = async (req, res) => {
 
 export const changePassword = async (req, res) => {
   try {
-    const { userId } = req.body.user;
+    const { userId } = req.user;
 
     const { currentPassword, newPassword, confirmPassword } = req.body;
 
@@ -71,8 +71,8 @@ export const changePassword = async (req, res) => {
 
 export const updateUser = async (req, res) => {
   try {
-    const { userId } = req.body.user;
-    const { firstname, lastname, email } = req.body;
+    const { userId } = req.user;
+    const { firstname, lastname, email, contact, country, currency } = req.body;
 
     const user = await User.findById(userId);
 
@@ -85,6 +85,9 @@ export const updateUser = async (req, res) => {
     user.firstname = firstname;
     user.lastname = lastname;
     user.email = email;
+    user.contact = contact || "";
+    user.country = country || "";
+    user.currency = currency || "INR";
     await user.save();
 
     user.password = undefined;
@@ -92,7 +95,15 @@ export const updateUser = async (req, res) => {
     res.status(200).json({
       status: "success",
       message: "User information updated successfully",
-      user,
+      user: {
+        id: user._id,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        email: user.email,
+        contact: user.contact,
+        country: user.country,
+        currency: user.currency
+      },
     });
   } catch (error) {
     console.log(error);

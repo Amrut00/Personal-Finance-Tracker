@@ -25,6 +25,7 @@ const Transactions = () => {
   const [data, setData] = useState([]);
 
   const [search, setSearch] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
   const startDate = searchParams.get("df") || "";
   const endDate = searchParams.get("dt") || "";
 
@@ -36,14 +37,20 @@ const Transactions = () => {
 
   const fetchTransactions = async () => {
     try {
-      const { data: res } = await api.get(`/transaction?df=${startDate}&dt=${endDate}&s=${search}`);
+      const searchParam = search || "";
+      const { data: res } = await api.get(`/transaction?df=${startDate}&dt=${endDate}&s=${searchParam}`);
       setData(res?.data || []);
     } catch (error) {
-      console.error(error);
+      console.error("Error fetching transactions:", error);
       toast.error(error?.response?.data?.message || "Something unexpected happened. Try again later.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const forceRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+    fetchTransactions();
   };
 
   const handleSearch = async (e) => {
@@ -127,7 +134,7 @@ const Transactions = () => {
                     className='w-full border-b border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-500 hover:bg-gray-300/10'
                   >
                     <td className='py-4'>
-                      <p className='w-24 md:w-auto'>{new Date(item.createdat).toDateString()}</p>
+                      <p className='w-24 md:w-auto'>{new Date(item.createdAt).toDateString()}</p>
                     </td>
 
                     <td className='py-4 px-2'>
@@ -177,15 +184,16 @@ const Transactions = () => {
       <AddTransaction
         isOpen={isOpen}
         setIsOpen={setIsOpen}
-        refetch={fetchTransactions}
-        key={new Date().getTime()}
+        refetch={forceRefresh}
+        key={`add-transaction-${refreshKey}`}
       />
 
       <ViewTransaction
         data={selected}
         isOpen={isOpenView}
         setIsOpen={setIsOpenView}
-        refreshData={fetchTransactions}
+        refreshData={forceRefresh}
+        key={`view-transaction-${selected?._id || 'new'}-${refreshKey}`}
       />
     </>
   );
