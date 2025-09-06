@@ -128,8 +128,8 @@ const SignIn = () => {
 
             <div className='my-4 text-center text-gray-600'>OR</div>
 
-            {/* ➤ Google Login Component - Temporarily disabled */}
-            {/* <div className="w-full flex justify-center">
+            {/* ➤ Google Login Component */}
+            <div className="w-full flex justify-center">
               <GoogleLogin
                 clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}
                 buttonText="Sign in with Google"
@@ -147,7 +147,7 @@ const SignIn = () => {
                 useOneTap
                 auto_select
               />
-            </div> */}
+            </div>
           </CardContent>
 
           <CardFooter className="justify-center gap-2">

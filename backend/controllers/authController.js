@@ -4,6 +4,7 @@ import { OAuth2Client } from "google-auth-library";
 import { hashPassword } from "../libs/index.js";
 import { User } from "../database/mongo-schema.js";
 
+// Initialize Google OAuth client
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const createJWT = (id) => {
@@ -168,8 +169,12 @@ export const googleSignIn = async (req, res) => {
       user: {
         id: user._id,
         firstname: user.firstname,
+        lastname: user.lastname,
         email: user.email,
-        avatar: user.avatar
+        contact: user.contact || "",
+        country: user.country || "",
+        currency: user.currency || "INR",
+        avatar: user.avatar || ""
       }
     });
   } catch (error) {
