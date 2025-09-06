@@ -130,7 +130,7 @@ const Navbar = () => {
             <RiCurrencyFill className='text-white text-3xl hover:animate-spin' />
           </div>
           <span className='text-xl font-bold text-black dark:text-white'>
-            My-Finance
+            Budget Buddy
           </span>
         </div>
       </Link>
