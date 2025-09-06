@@ -31,15 +31,35 @@ process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err);
 });
 
-// ✅ Fix CORS Policy
+// ✅ CORS Policy - Support both local and production
+const allowedOrigins = [
+  'http://localhost:5173', // Local development
+  'http://localhost:3000',  // Alternative local port
+  process.env.FRONTEND_URL, // Production frontend URL
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null, // Vercel preview URLs
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:5173' 
-    : [
-      'http://localhost:5173', 
-      'https://startling-capybara-a97502.netlify.app', 
-      'https://finance-tracker-frontend-1111.vercel.app'
-    ],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Allow Vercel preview URLs
+    if (origin && origin.includes('.vercel.app')) {
+      return callback(null, true);
+    }
+    
+    // Allow Netlify URLs
+    if (origin && origin.includes('.netlify.app')) {
+      return callback(null, true);
+    }
+    
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
